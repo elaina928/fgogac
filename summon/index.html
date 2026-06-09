@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FGO 소환확률 계산기</title>
+    <style>
+        :root {
+            --fgo-blue: #1a2a3a;
+            --fgo-gold: #bba15c;
+            --fgo-bg: #f5f6f8;
+            --text-main: #333333;
+            --border-color: #dddddd;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--fgo-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .calc-container {
+            background: #ffffff;
+            max-width: 500px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 20px;
+            text-align: center;
+            color: var(--fgo-blue);
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--fgo-blue);
+            padding-bottom: 10px;
+        }
+
+        .setting-row {
+            background: #fafafa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .setting-row:hover {
+            background: #f0f2f5;
+            border-color: #b8c2cc;
+        }
+
+        .setting-label {
+            font-size: 12px;
+            color: #777777;
+            margin-bottom: 4px;
+        }
+
+        .setting-value {
+            font-size: 15px;
+            font-weight: bold;
+            color: #222222;
+        }
+
+        .btn-calc {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--fgo-blue);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 15px;
+        }
+
+        .btn-calc:hover {
+            background-color: #0f1a24;
+        }
+
+        /* 모달 창 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaaaaa;
+        }
+
+        .modal-close:hover { color: #333333; }
+
+        .modal h2 {
+            font-size: 18px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--fgo-blue);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .btn-modal-save {
+            width: 100%;
+            background: var(--fgo-blue);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* 결과 섹션 */
+        .result-box {
+            display: none;
+            margin-top: 25px;
+            border-top: 2px dashed var(--border-color);
+            padding-top: 20px;
+        }
+
+        .result-summary {
+            background: #eef6fc;
+            border-left: 4px solid #2b6cb0;
+            padding: 15px;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .highlight-text {
+            color: #c53030;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        th {
+            background-color: #f7fafc;
+            color: #4a5568;
+        }
+
+        .highlight-row {
+            background-color: #fffaf0;
+            font-weight: bold;
+            border: 1px solid var(--fgo-gold);
+        }
+    </style>
+</head>
+<body>
+
+<div class="calc-container">
+    <h1>FGO 소환확률 계산기 (천장 반영)</h1>
+    
+    <div class="setting-row" onclick="openModal('modal-pickup')">
+        <div class="setting-label">픽업 구분 (설정하려면 클릭)</div>
+        <div class="setting-value" id="val-pickup">5성 서번트 단독 픽업 (0.8%)</div>
+    </div>
+    
+    <div class="setting-row" onclick="openModal('modal-goods')">
+        <div class="setting-label">소비 성정석과 호부 (설정하려면 클릭)</div>
+        <div class="setting-value" id="val-goods">성정석: 2000개, 호부: 0장</div>
+    </div>
+    
+    <div class="setting-row" onclick="openModal('modal-target')">
+        <div class="setting-label">목표 보구 레벨 (설정하려면 클릭)</div>
+        <div class="setting-value" id="val-target">목표 보구 레벨: 5단계 (5회 성공)</div>
+    </div>
+    
+    <div class="setting-row" onclick="openModal('modal-pity')">
+        <div class="setting-label">천장 스택 설정 (설정하려면 클릭)</div>
+        <div class="setting-value" id="val-pity">천장 요구 스택: 330스택</div>
+    </div>
+
+    <button class="btn-calc" onclick="calculateFGO()">계산하기</button>
+
+    <div class="result-box" id="result-box">
+        <div class="result-summary" id="result-summary"></div>
+        <h3 style="font-size: 15px; margin: 15px 0 5px 0; color: #4a5568;">성공 횟수별 확률 분포 테이블</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>보구 레벨 (성공)</th>
+                    <th>정확히 달성할 확률</th>
+                    <th>해당 레벨 이상 확률</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal" id="modal-pickup">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('modal-pickup')">&times;</span>
+        <h2>픽업 확률 설정</h2>
+        <div class="input-group">
+            <label for="input-rate">기본 확률 (%)</label>
+            <input type="number" id="input-rate" value="0.8" step="0.001" min="0" max="100">
+        </div>
+        <button class="btn-modal-save" onclick="savePickup()">확인</button>
+    </div>
+</div>
+
+<div class="modal" id="modal-goods">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('modal-goods')">&times;</span>
+        <h2>소비 성정석 및 호부 설정</h2>
+        <div class="input-group">
+            <label for="input-stones">소비 성정석 개수</label>
+            <input type="number" id="input-stones" value="2000" min="0">
+        </div>
+        <div class="input-group">
+            <label for="input-tickets">소비 호부 개수</label>
+            <input type="number" id="input-tickets" value="0" min="0">
+        </div>
+        <button class="btn-modal-save" onclick="saveGoods()">확인</button>
+    </div>
+</div>
+
+<div class="modal" id="modal-target">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('modal-target')">&times;</span>
+        <h2>목표 보구 레벨 설정</h2>
+        <div class="input-group">
+            <label for="input-target">목표 보구 레벨 (성공 횟수)</label>
+            <input type="number" id="input-target" value="5" min="1">
+        </div>
+        <button class="btn-modal-save" onclick="saveTarget()">확인</button>
+    </div>
+</div>
+
+<div class="modal" id="modal-pity">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('modal-pity')">&times;</span>
+        <h2>천장 요구 스택 설정</h2>
+        <div class="input-group">
+            <label for="input-pity">천장 확정 스택</label>
+            <input type="number" id="input-pity" value="330" min="1">
+        </div>
+        <button class="btn-modal-save" onclick="savePity()">확인</button>
+    </div>
+</div>
+
+<script>
+    // 모달 제어 함수
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // 설정 반영 및 텍스트 갱신 함수
+    function savePickup() {
+        const rate = document.getElementById('input-rate').value;
+        document.getElementById('val-pickup').innerText = `지정 확률 (${rate}%)`;
+        closeModal('modal-pickup');
+    }
+    function saveGoods() {
+        const stones = document.getElementById('input-stones').value;
+        const tickets = document.getElementById('input-tickets').value;
+        document.getElementById('val-goods').innerText = `성정석: ${stones}개, 호부: ${tickets}장`;
+        closeModal('modal-goods');
+    }
+    function saveTarget() {
+        const target = document.getElementById('input-target').value;
+        document.getElementById('val-target').innerText = `목표 보구 레벨: ${target}단계 (${target}회 성공)`;
+        closeModal('modal-target');
+    }
+    function savePity() {
+        const pity = document.getElementById('input-pity').value;
+        document.getElementById('val-pity').innerText = `천장 요구 스택: ${pity}스택`;
+        closeModal('modal-pity');
+    }
+
+    // 핵심 연산 함수
+    function calculateFGO() {
+        const stones = Math.max(0, parseInt(document.getElementById('input-stones').value) || 0);
+        const tickets = Math.max(0, parseInt(document.getElementById('input-tickets').value) || 0);
+        const baseRatePercent = Math.max(0, parseFloat(document.getElementById('input-rate').value) || 0);
+        const pityStack = Math.max(1, parseInt(document.getElementById('input-pity').value) || 330);
+        const targetSuccess = Math.max(1, parseInt(document.getElementById('input-target').value) || 1);
+
+        const p = baseRatePercent / 100;
+
+        // 독립 재화 분리 환산
+        const stonePulls = Math.floor(stones / 30) * 11 + Math.floor((stones % 30) / 3);
+        const ticketPulls = Math.floor(tickets / 10) * 11 + (tickets % 10);
+        const totalPulls = stonePulls + ticketPulls;
+
+        const maxDisplaySuccess = Math.max(10, targetSuccess);
+
+        // DP 배열 초기화
+        let dp = [];
+        for (let s = 0; s <= maxDisplaySuccess + 1; s++) {
+            dp[s] = new Array(pityStack).fill(0);
+        }
+        dp[0][0] = 1.0;
+
+        // DP 연산 루프
+        for (let pull = 0; pull < totalPulls; pull++) {
+            let nextDp = [];
+            for (let s = 0; s <= maxDisplaySuccess + 1; s++) {
+                nextDp[s] = new Array(pityStack).fill(0);
+            }
+
+            for (let s = 0; s <= maxDisplaySuccess; s++) {
+                for (let k = 0; k < pityStack; k++) {
+                    const currentProb = dp[s][k];
+                    if (currentProb === 0) continue;
+
+                    if (k === pityStack - 1) {
+                        nextDp[s + 1][0] += currentProb;
+                    } else {
+                        nextDp[s + 1][0] += currentProb * p;
+                        nextDp[s][k + 1] += currentProb * (1 - p);
+                    }
+                }
+            }
+            // 초과 성공 누적 처리
+            for (let k = 0; k < pityStack; k++) {
+                if (dp[maxDisplaySuccess + 1][k] > 0) {
+                    if (k === pityStack - 1) {
+                        nextDp[maxDisplaySuccess + 1][0] += dp[maxDisplaySuccess + 1][k];
+                    } else {
+                        nextDp[maxDisplaySuccess + 1][0] += dp[maxDisplaySuccess + 1][k] * p;
+                        nextDp[maxDisplaySuccess + 1][k + 1] += dp[maxDisplaySuccess + 1][k] * (1 - p);
+                    }
+                }
+            }
+            dp = nextDp;
+        }
+
+        // 결과 가공
+        const exactProbs = new Array(maxDisplaySuccess + 1).fill(0);
+        for (let s = 0; s <= maxDisplaySuccess; s++) {
+            let sum = 0;
+            for (let k = 0; k < pityStack; k++) { sum += dp[s][k]; }
+            exactProbs[s] = sum;
+        }
+
+        const atLeastProbs = new Array(maxDisplaySuccess + 1).fill(0);
+        let cumulativeLess = 0;
+        for (let s = 0; s <= maxDisplaySuccess; s++) {
+            atLeastProbs[s] = Math.max(0, 1.0 - cumulativeLess);
+            cumulativeLess += exactProbs[s];
+        }
+
+        // UI 표기
+        const targetExact = exactProbs[targetSuccess] || 0;
+        const targetAtLeast = atLeastProbs[targetSuccess] || 0;
+
+        document.getElementById('result-summary').innerHTML = 
+            `<strong>환산된 총 시행 횟수:</strong> ${totalPulls}회 (돌 환산 ${stonePulls}회 + 호부 환산 ${ticketPulls}회)<br><br>` +
+            `🎯 <strong>목표 [보구 ${targetSuccess}레벨] 결과 요약:</strong><br>` +
+            `- 정확히 보구 ${targetSuccess}레벨이 될 확률: <span class="highlight-text">${(targetExact * 100).toFixed(3)}%</span><br>` +
+            `- <strong>보구 ${targetSuccess}레벨 이상</strong> 달성할 확률: <span class="highlight-text">${(targetAtLeast * 100).toFixed(3)}%</span>`;
+
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+        
+        for (let s = 0; s <= maxDisplaySuccess; s++) {
+            const row = document.createElement('tr');
+            if (s === targetSuccess) row.className = 'highlight-row';
+
+            row.innerHTML = `
+                <td>보구 ${s}벨 (${s}회)</td>
+                <td>${(exactProbs[s] * 100).toFixed(3)}%</td>
+                <td>${(atLeastProbs[s] * 100).toFixed(3)}%</td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        document.getElementById('result-box').style.display = 'block';
+    }
+</script>
+</body>
+</html>
